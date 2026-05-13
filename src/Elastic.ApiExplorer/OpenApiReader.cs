@@ -15,12 +15,8 @@ public static class OpenApiReader
 		if (!openApiSpecification.Exists)
 			return null;
 
-		var settings = new OpenApiReaderSettings
-		{
-			LeaveStreamOpen = false
-		};
-		await using var fs = File.Open(openApiSpecification.FullName, FileMode.Open);
-		var openApiDocument = await OpenApiDocument.LoadAsync(fs, settings: settings);
+		var settings = new OpenApiReaderSettings { LeaveStreamOpen = false };
+		var openApiDocument = await OpenApiDocument.LoadAsync(openApiSpecification.FullName, settings: settings);
 		return openApiDocument.Document;
 	}
 

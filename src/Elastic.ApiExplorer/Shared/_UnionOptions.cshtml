@@ -8,6 +8,12 @@
 		return;
 	}
 
+	// Flatten any nested anyOf/oneOf layers so concrete named types bubble up.
+	// e.g. panels: anyOf[ anyOf[DiscoverSession, Image, ...], Section ] → [DiscoverSession, Image, ..., Section]
+	var flattened = Model.Analyzer.FlattenUnionOptions(options);
+	if (flattened.Count > 0)
+		options = flattened;
+
 	// If ALL options are value types (no objects), don't render tree nodes
 	// The "One of:" badges are sufficient for simple unions like boolean | number
 	var hasObjectOption = options.Any(o => o.IsObject);
@@ -134,7 +140,7 @@
 			<div class="union-variant-label">
 				@if (isArrayVariant)
 				{
-					<span class="array-icon">[]</span>
+					<span class="array-icon">array</span>
 				}
 				@if (isObjectType)
 				{

@@ -485,8 +485,11 @@ public class SchemaAnalyzer(OpenApiDocument document, string? currentPageType = 
 				var itemInfo = GetTypeInfo(schema.Items);
 				// If the item is not an object and not a linked type, it's a primitive array
 				var isPrimitiveArray = itemInfo is not { IsObject: false, HasLink: false } || !string.IsNullOrEmpty(itemInfo.SchemaRef);
-				var arrayItemType = isPrimitiveArray ? itemInfo.TypeName : null;
-				return new TypeInfo(itemInfo.TypeName, itemInfo.SchemaRef, true, itemInfo.IsObject, itemInfo.IsValueType, itemInfo.ValueTypeBase, itemInfo.HasLink, null, ArrayItemType: arrayItemType);
+				// Don't surface structural OpenAPI keywords (anyOf/oneOf/etc.) as "Array of: X" labels
+				var arrayItemType = isPrimitiveArray && !SchemaHelpers.IsPrimitiveTypeName(itemInfo.TypeName) ? itemInfo.TypeName : null;
+				return new TypeInfo(itemInfo.TypeName, itemInfo.SchemaRef, true, itemInfo.IsObject, itemInfo.IsValueType, itemInfo.ValueTypeBase, itemInfo.HasLink,
+					itemInfo.AnyOfOptions, ArrayItemType: arrayItemType, IsUnion: itemInfo.IsUnion, UnionOptions: itemInfo.UnionOptions
+				);
 			}
 			return new TypeInfo("unknown", null, true, false, false, null, false, null, ArrayItemType: "unknown");
 		}

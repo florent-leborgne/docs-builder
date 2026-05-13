@@ -165,13 +165,20 @@
 	}
 	@if (typeInfo.IsUnion)
 	{
-		// Merge AnyOfOptions names with UnionOptions for complete coverage
+		// Flatten nested unions first so concrete leaf types bubble up (e.g. panels: anyOf[anyOf[DiscoverSession, ...], Section])
+		// then filter out structural OpenAPI keywords (anyOf/oneOf/etc.) that are meaningless to readers
+		var rawOptions = typeInfo.AnyOfOptions ?? [];
+		var flattenedOptions = ctx.Analyzer.FlattenUnionOptions(rawOptions);
+		var effectiveOptions = flattenedOptions.Count > 0 ? flattenedOptions : rawOptions;
+
 		var unionOptionNames = new List<string>();
-		if (typeInfo.AnyOfOptions != null && typeInfo.AnyOfOptions.Count > 0)
-			unionOptionNames.AddRange(typeInfo.AnyOfOptions.Select(o => o.Name));
+		unionOptionNames.AddRange(effectiveOptions.Select(o => o.Name));
 		if (typeInfo.UnionOptions != null)
 			unionOptionNames.AddRange(typeInfo.UnionOptions);
-		var distinctOptions = unionOptionNames.Distinct().ToArray();
+		var distinctOptions = unionOptionNames
+			.Where(o => !SchemaHelpers.IsPrimitiveTypeName(o))
+			.Distinct()
+			.ToArray();
 
 		var sortedOptions = distinctOptions
 			.OrderByDescending(o => o.EndsWith("[]"))
@@ -217,7 +224,7 @@
 					</span>
 					<span class="union-inline-separator">or</span>
 					<span class="union-inline-option">
-						<span class="array-icon">[]</span>
+						<span class="array-icon">array</span>
 						@if (isObjectType)
 						{
 							<span class="object-icon">{}</span>
@@ -301,12 +308,12 @@
 	{
 		// Build new ancestor set including current type
 		var newAncestors = ctx.AncestorTypes != null ? new HashSet<string>(ctx.AncestorTypes) : new HashSet<string>();
-		if (!string.IsNullOrEmpty(typeInfo.TypeName) && typeInfo.IsObject)
+		if (!string.IsNullOrEmpty(typeInfo.TypeName) && typeInfo.IsObject && !SchemaHelpers.IsPrimitiveTypeName(typeInfo.TypeName))
 		{
 			if (typeInfo.IsDictionary && typeInfo.DictValueSchema != null)
 			{
 				var dictValueType = ctx.Analyzer.GetTypeInfo(typeInfo.DictValueSchema);
-				if (!string.IsNullOrEmpty(dictValueType.TypeName))
+				if (!string.IsNullOrEmpty(dictValueType.TypeName) && !SchemaHelpers.IsPrimitiveTypeName(dictValueType.TypeName))
 					newAncestors.Add(dictValueType.TypeName);
 			}
 			else

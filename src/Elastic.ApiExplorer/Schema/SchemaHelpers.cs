@@ -46,7 +46,9 @@ public static class SchemaHelpers
 	/// </summary>
 	public static readonly HashSet<string> PrimitiveTypeNames = new(StringComparer.OrdinalIgnoreCase)
 	{
-		"boolean", "number", "string", "integer", "object", "null", "array"
+		"boolean", "number", "string", "integer", "object", "null", "array",
+		// Structural descriptors — not real named types, must not participate in recursion detection
+		"anyOf", "oneOf", "allOf", "unknown"
 	};
 
 	/// <summary>
